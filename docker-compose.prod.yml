@@ -1,0 +1,35 @@
+services:
+  # NestJS Backend (Production dengan Neon Database)
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tallypos-backend-prod
+    restart: always
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_DATABASE: ${DB_DATABASE}
+      DB_SSL: ${DB_SSL:-true}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1d}
+    networks:
+      - tallypos-network
+    volumes:
+      - ./logs:/app/logs
+    command: sh -c "node dist/main"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  tallypos-network:
+    driver: bridge
