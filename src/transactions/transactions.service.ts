@@ -180,7 +180,7 @@ export class TransactionsService {
         transactionDate: Between(startDate, endDate),
         status: TransactionStatus.COMPLETED,
       },
-      relations: ['details'],
+      relations: ['details', 'details.product'],
     });
 
     const totalSales = transactions.reduce(
@@ -193,12 +193,25 @@ export class TransactionsService {
       0,
     );
 
+    // Hitung total profit
+    let totalProfit = 0;
+    for (const trx of transactions) {
+      for (const detail of trx.details) {
+        // Pastikan product sudah di-relasi
+        const purchasePrice = detail.product?.purchasePrice ? Number(detail.product.purchasePrice) : 0;
+        const unitPrice = detail.unitPrice ? Number(detail.unitPrice) : 0;
+        const profitPerItem = (unitPrice - purchasePrice) * detail.quantity;
+        totalProfit += profitPerItem;
+      }
+    }
+
     return {
       startDate,
       endDate,
       totalSales,
       totalTransactions,
       totalItems,
+      totalProfit,
       averageTransaction: totalTransactions > 0 ? totalSales / totalTransactions : 0,
       transactions,
     };

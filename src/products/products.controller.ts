@@ -10,7 +10,11 @@ import {
   HttpStatus,
   UseGuards,
   Query,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -18,6 +22,11 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/enums/user-role.enum';
+import {
+  productImageStorage,
+  imageFileFilter,
+  maxFileSize,
+} from '../common/utils/file-upload.util';
 
 @Controller('products')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -29,6 +38,30 @@ export class ProductsController {
   @HttpCode(HttpStatus.CREATED)
   create(@Body() createProductDto: CreateProductDto) {
     return this.productsService.create(createProductDto);
+  }
+
+  // Upload endpoints harus SEBELUM :id routes untuk menghindari conflict
+  @Post('upload-image')
+  @Roles(UserRole.ADMIN)
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: productImageStorage,
+      fileFilter: imageFileFilter,
+      limits: { fileSize: maxFileSize },
+    }),
+  )
+  uploadImage(@UploadedFile() file: any) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    const imageUrl = `/uploads/products/${file.filename}`;
+    return {
+      message: 'Image uploaded successfully',
+      filename: file.filename,
+      url: imageUrl,
+      path: file.path,
+    };
   }
 
   @Get()
@@ -84,6 +117,38 @@ export class ProductsController {
   @Roles(UserRole.ADMIN)
   toggleActive(@Param('id') id: string) {
     return this.productsService.toggleActive(id);
+  }
+
+  @Post(':id/upload-image')
+  @Roles(UserRole.ADMIN)
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: productImageStorage,
+      fileFilter: imageFileFilter,
+      limits: { fileSize: maxFileSize },
+    }),
+  )
+  async uploadAndUpdateImage(
+    @Param('id') id: string,
+    @UploadedFile() file: any,
+  ) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    const imageUrl = `/uploads/products/${file.filename}`;
+
+    // Update product with new image URL
+    const product = await this.productsService.update(id, {
+      imageUrl,
+    });
+
+    return {
+      message: 'Image uploaded and product updated successfully',
+      filename: file.filename,
+      url: imageUrl,
+      product,
+    };
   }
 
   @Delete(':id')

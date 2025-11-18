@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, HttpException, HttpStatus } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TransactionDetail } from '../transactions/entities/transaction-detail.entity';
@@ -74,27 +74,36 @@ export class TransactionDetailsService {
   }
 
   async getTopSellingProducts(limit: number = 10): Promise<any[]> {
-    const result = await this.transactionDetailRepository
-      .createQueryBuilder('detail')
-      .select('detail.productId', 'productId')
-      .addSelect('detail.productName', 'productName')
-      .addSelect('SUM(detail.quantity)', 'totalQuantity')
-      .addSelect('SUM(detail.subtotal)', 'totalRevenue')
-      .addSelect('COUNT(detail.id)', 'transactionCount')
-      .leftJoin('detail.transaction', 'transaction')
-      .where('transaction.status = :status', { status: 'completed' })
-      .groupBy('detail.productId')
-      .addGroupBy('detail.productName')
-      .orderBy('totalQuantity', 'DESC')
-      .limit(limit)
-      .getRawMany();
+    try {
+      const result = await this.transactionDetailRepository
+        .createQueryBuilder('detail')
+        .select('detail.productId', 'productId')
+        .addSelect('detail.productName', 'productName')
+        .addSelect('SUM(detail.quantity)', 'totalquantity')
+        .addSelect('SUM(detail.subtotal)', 'totalrevenue')
+        .addSelect('COUNT(detail.id)', 'transactioncount')
+        .leftJoin('detail.transaction', 'transaction')
+        .where('transaction.status = :status', { status: 'completed' })
+        .groupBy('detail.productId')
+        .addGroupBy('detail.productName')
+        .orderBy('totalquantity', 'DESC')
+        .limit(limit)
+        .getRawMany();
 
-    return result.map((item) => ({
-      productId: item.productId,
-      productName: item.productName,
-      totalQuantity: parseInt(item.totalQuantity),
-      totalRevenue: parseFloat(item.totalRevenue),
-      transactionCount: parseInt(item.transactionCount),
-    }));
+      return result.map((item) => ({
+        productId: item.productId,
+        productName: item.productName,
+        totalQuantity: parseInt(item.totalquantity),
+        totalRevenue: parseFloat(item.totalrevenue),
+        transactionCount: parseInt(item.transactioncount),
+      }));
+    } catch (error) {
+      // Log error ke console agar mudah debug
+      console.error('TopSellingProducts error:', error);
+      throw new HttpException(
+        'Failed to get top selling products: ' + error.message,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 }

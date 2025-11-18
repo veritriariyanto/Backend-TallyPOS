@@ -47,8 +47,13 @@ export class TransactionDetailsController {
 
   @Get('top-selling')
   @Roles(UserRole.ADMIN)
-  getTopSellingProducts(@Query('limit') limit?: number) {
-    return this.transactionDetailsService.getTopSellingProducts(limit);
+  getTopSellingProducts(@Query('limit') limit?: string) {
+    // Pastikan limit selalu number dan default ke 10 jika tidak valid
+    let parsedLimit = Number(limit);
+    if (isNaN(parsedLimit) || parsedLimit <= 0) {
+      parsedLimit = 10;
+    }
+    return this.transactionDetailsService.getTopSellingProducts(parsedLimit);
   }
 
   @Get(':id')

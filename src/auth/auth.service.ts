@@ -8,6 +8,7 @@ export interface JwtPayload {
   sub: string;
   username: string;
   role: string;
+  avatarUrl?: string;
 }
 
 export interface LoginResponse {
@@ -18,6 +19,7 @@ export interface LoginResponse {
     email: string;
     role: string;
     fullName: string;
+    avatarUrl?: string;
   };
 }
 
@@ -52,6 +54,7 @@ export class AuthService {
       sub: user.id,
       username: user.username,
       role: user.role,
+      avatarUrl: user.avatarUrl,
     };
 
     const access_token = await this.jwtService.signAsync(payload);
@@ -64,6 +67,7 @@ export class AuthService {
         email: user.email,
         role: user.role,
         fullName: user.fullName,
+        avatarUrl: user.avatarUrl,
       },
     };
   }

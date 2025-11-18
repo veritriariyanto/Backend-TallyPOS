@@ -45,13 +45,28 @@ export class TransactionsController {
   @Get('report')
   @Roles(UserRole.ADMIN)
   getSalesReport(
-    @Query('startDate') startDate: string,
-    @Query('endDate') endDate: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
   ) {
-    return this.transactionsService.getSalesReport(
-      new Date(startDate),
-      new Date(endDate),
-    );
+    // Default: tahun ini
+    const now = new Date();
+    const year = now.getFullYear();
+    const defaultStart = new Date(year, 0, 1); // 1 Jan tahun ini
+    const defaultEnd = now; // hari ini
+    let start = startDate ? new Date(startDate) : defaultStart;
+    let end = endDate ? new Date(endDate) : defaultEnd;
+
+    // Jika start dan end sama (hanya tanggal, tanpa jam), set end ke akhir hari
+    if (
+      start && end &&
+      start.getFullYear() === end.getFullYear() &&
+      start.getMonth() === end.getMonth() &&
+      start.getDate() === end.getDate()
+    ) {
+      end = new Date(end);
+      end.setHours(23, 59, 59, 999);
+    }
+    return this.transactionsService.getSalesReport(start, end);
   }
 
   @Get('code/:code')
